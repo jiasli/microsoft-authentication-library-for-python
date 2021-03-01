@@ -73,10 +73,11 @@ class TestClientApplicationAcquireTokenSilentErrorBehaviors(unittest.TestCase):
             self.client_id, authority=self.authority_url, token_cache=self.cache)
 
     def test_cache_empty_will_be_returned_as_None(self):
+        app_with_empty_cache = ClientApplication(self.client_id, authority=self.authority_url)
         self.assertEqual(
-            None, self.app.acquire_token_silent(['cache_miss'], self.account))
+            None, app_with_empty_cache.acquire_token_silent(['cache_miss'], self.account))
         self.assertEqual(
-            None, self.app.acquire_token_silent_with_error(['cache_miss'], self.account))
+            None, app_with_empty_cache.acquire_token_silent_with_error(['cache_miss'], self.account))
 
     def test_acquire_token_silent_will_suppress_error(self):
         error_response = '{"error": "invalid_grant", "suberror": "xyz"}'
@@ -398,4 +399,3 @@ class TestApplicationForRefreshInBehaviors(unittest.TestCase):
         self.assertEqual(
             new_access_token,
             self.app.acquire_token_silent(['s1'], self.account).get("access_token"))
-
