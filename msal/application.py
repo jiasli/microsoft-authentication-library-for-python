@@ -300,7 +300,6 @@ class ClientApplication(object):
             client_assertion_type=client_assertion_type,
             on_obtaining_tokens=lambda event: self.token_cache.add(dict(
                 event, environment=authority.instance)),
-            on_removing_rt=self.token_cache.remove_rt,
             on_updating_rt=self.token_cache.update_rt)
 
     def initiate_auth_code_flow(

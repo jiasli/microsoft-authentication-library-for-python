@@ -725,12 +725,10 @@ class Client(BaseClient):  # We choose to implement all 4 grants in 1 class
     def __init__(self,
             server_configuration, client_id,
             on_obtaining_tokens=lambda event: None,  # event is defined in _obtain_token(...)
-            on_removing_rt=lambda token_item: None,
             on_updating_rt=lambda token_item, new_rt: None,
             **kwargs):
         super(Client, self).__init__(server_configuration, client_id, **kwargs)
         self.on_obtaining_tokens = on_obtaining_tokens
-        self.on_removing_rt = on_removing_rt
         self.on_updating_rt = on_updating_rt
 
     def _obtain_token(
