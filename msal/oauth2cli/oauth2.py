@@ -768,7 +768,6 @@ class Client(BaseClient):  # We choose to implement all 4 grants in 1 class
 
     def obtain_token_by_refresh_token(self, token_item, scope=None,
             rt_getter=lambda token_item: token_item["refresh_token"],
-            on_removing_rt=None,
             on_updating_rt=None,
             on_obtaining_tokens=None,
             **kwargs):
@@ -787,7 +786,6 @@ class Client(BaseClient):  # We choose to implement all 4 grants in 1 class
             granted by the resource owner,
             according to https://tools.ietf.org/html/rfc6749#section-6
         :param rt_getter: A callable to translate the token_item to a raw RT string
-        :param on_removing_rt: If absent, fall back to the one defined in initialization
 
         :param on_updating_rt:
             Default to None, it will fall back to the one defined in initialization.
@@ -805,8 +803,6 @@ class Client(BaseClient):  # We choose to implement all 4 grants in 1 class
             scope=scope,
             also_save_rt=on_updating_rt is False,
             **kwargs)
-        if resp.get('error') == 'invalid_grant':
-            (on_removing_rt or self.on_removing_rt)(token_item)  # Discard old RT
         RT = "refresh_token"
         if on_updating_rt is not False and RT in resp:
             (on_updating_rt or self.on_updating_rt)(token_item, resp[RT])
@@ -829,4 +825,3 @@ class Client(BaseClient):  # We choose to implement all 4 grants in 1 class
         data = kwargs.pop("data", {})
         data.update(scope=scope, assertion=encoder(assertion))
         return self._obtain_token(grant_type, data=data, **kwargs)
-

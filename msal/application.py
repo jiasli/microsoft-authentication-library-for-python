@@ -879,7 +879,6 @@ class ClientApplication(object):
             at = self._acquire_token_silent_by_finding_specific_refresh_token(
                 authority, scopes,
                 dict(query, family_id="1"),  # A hack, we have only 1 family for now
-                rt_remover=lambda rt_item: None,  # NO-OP b/c RTs are likely not mine
                 break_condition=lambda response:  # Break loop when app not in family
                     # Based on an AAD-only behavior mentioned in internal doc here
                     # https://msazure.visualstudio.com/One/_git/ESTS-Docs/pullrequest/1138595
@@ -908,7 +907,7 @@ class ClientApplication(object):
 
     def _acquire_token_silent_by_finding_specific_refresh_token(
             self, authority, scopes, query,
-            rt_remover=None, break_condition=lambda response: False,
+            break_condition=lambda response: False,
             force_refresh=False, correlation_id=None, claims_challenge=None, **kwargs):
         matches = self.token_cache.find(
             self.token_cache.CredentialType.REFRESH_TOKEN,
@@ -922,7 +921,6 @@ class ClientApplication(object):
             logger.debug("Cache attempts an RT")
             response = client.obtain_token_by_refresh_token(
                 entry, rt_getter=lambda token_item: token_item["secret"],
-                on_removing_rt=rt_remover or self.token_cache.remove_rt,
                 on_obtaining_tokens=lambda event: self.token_cache.add(dict(
                     event,
                     environment=authority.instance,
@@ -997,7 +995,6 @@ class ClientApplication(object):
             },
             rt_getter=lambda rt: rt,
             on_updating_rt=False,
-            on_removing_rt=lambda rt_item: None,  # No OP
             **kwargs)
 
 
