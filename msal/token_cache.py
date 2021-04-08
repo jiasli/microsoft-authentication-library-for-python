@@ -150,6 +150,38 @@ class TokenCache(object):
         with self._lock:
             now = int(time.time() if now is None else now)
 
+            if client_info and not event.get("skip_account_creation"):
+                account = {
+                    "home_account_id": home_account_id,
+                    "environment": environment,
+                    "realm": realm,
+                    "local_account_id": id_token_claims.get(
+                        "oid", id_token_claims.get("sub")),
+                    "username": id_token_claims.get("preferred_username")  # AAD
+                                or id_token_claims.get("upn")  # ADFS 2019
+                                or "",  # The schema does not like null
+                    "authority_type":
+                        self.AuthorityType.ADFS if realm == "adfs"
+                        else self.AuthorityType.MSSTS,
+                    # "client_info": response.get("client_info"),  # Optional
+                }
+                on_creating_account = event.get('on_creating_account')
+                if on_creating_account:
+                    on_creating_account(account)
+                self.modify(self.CredentialType.ACCOUNT, account, account)
+
+            if id_token:
+                idt = {
+                    "credential_type": self.CredentialType.ID_TOKEN,
+                    "secret": id_token,
+                    "home_account_id": home_account_id,
+                    "environment": environment,
+                    "realm": realm,
+                    "client_id": event.get("client_id"),
+                    # "authority": "it is optional",
+                }
+                self.modify(self.CredentialType.ID_TOKEN, idt, idt)
+
             if access_token:
                 expires_in = int(  # AADv1-like endpoint returns a string
 			response.get("expires_in", 3599))
@@ -174,35 +206,6 @@ class TokenCache(object):
                     refresh_in = response["refresh_in"]  # It is an integer
                     at["refresh_on"] = str(now + refresh_in)  # Schema wants a string
                 self.modify(self.CredentialType.ACCESS_TOKEN, at, at)
-
-            if client_info and not event.get("skip_account_creation"):
-                account = {
-                    "home_account_id": home_account_id,
-                    "environment": environment,
-                    "realm": realm,
-                    "local_account_id": id_token_claims.get(
-                        "oid", id_token_claims.get("sub")),
-                    "username": id_token_claims.get("preferred_username")  # AAD
-                        or id_token_claims.get("upn")  # ADFS 2019
-                        or "",  # The schema does not like null
-                    "authority_type":
-                        self.AuthorityType.ADFS if realm == "adfs"
-                        else self.AuthorityType.MSSTS,
-                    # "client_info": response.get("client_info"),  # Optional
-                    }
-                self.modify(self.CredentialType.ACCOUNT, account, account)
-
-            if id_token:
-                idt = {
-                    "credential_type": self.CredentialType.ID_TOKEN,
-                    "secret": id_token,
-                    "home_account_id": home_account_id,
-                    "environment": environment,
-                    "realm": realm,
-                    "client_id": event.get("client_id"),
-                    # "authority": "it is optional",
-                    }
-                self.modify(self.CredentialType.ID_TOKEN, idt, idt)
 
             if refresh_token:
                 rt = {
@@ -315,4 +318,3 @@ class SerializableTokenCache(TokenCache):
         with self._lock:
             self.has_state_changed = False
             return json.dumps(self._cache, indent=4)
-
