@@ -115,7 +115,7 @@ class ClientApplication(object):
             http_client=None,
             verify=True, proxies=None, timeout=None,
             client_claims=None, app_name=None, app_version=None,
-            client_capabilities=None):
+            client_capabilities=None, remove_existing_account=True):
         """Create an instance of application.
 
         :param str client_id: Your app has a client_id after you register it on AAD.
@@ -215,6 +215,10 @@ class ClientApplication(object):
             MSAL will combine them into
             `claims parameter <https://openid.net/specs/openid-connect-core-1_0-final.html#ClaimsParameter`_
             which you will later provide via one of the acquire-token request.
+        :param bool remove_existing_account: (optional)
+            After a successful sign-in, if the sign-in account already exists in the token
+            cache, remove it first along with its tokens to prevent MSAL from returning
+            cached access tokens from the previous session that may have been revoked.
         """
         self.client_id = client_id
         self.client_credential = client_credential
@@ -248,6 +252,7 @@ class ClientApplication(object):
         self.authority_groups = None
         self._telemetry_buffer = {}
         self._telemetry_lock = Lock()
+        self.remove_existing_account = remove_existing_account
 
     def _build_telemetry_context(
             self, api_id, correlation_id=None, refresh_reason=None):
@@ -310,7 +315,7 @@ class ClientApplication(object):
             client_assertion_type=client_assertion_type,
             on_obtaining_tokens=lambda event: self.token_cache.add(dict(
                 event, environment=authority.instance,
-                on_creating_account=self.remove_account)),
+                on_creating_account=self.remove_account if self.remove_existing_account else None)),
             on_removing_rt=self.token_cache.remove_rt,
             on_updating_rt=self.token_cache.update_rt)
 
